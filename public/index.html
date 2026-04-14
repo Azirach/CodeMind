@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeMind — AI Codebase Helper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ── WELCOME SCREEN ── -->
+  <div class="welcome" id="welcome">
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">// AI-Powered Developer Tool</div>
+      <h1 class="hero-title">Code<span>Mind</span></h1>
+      <p class="hero-sub">Your AI codebase assistant. Debug code, analyze errors, explain logic, and review files — powered by Ollama.</p>
+      <div class="hero-features">
+        <span class="feat"><span class="feat-dot"></span>chat assistant</span>
+        <span class="feat"><span class="feat-dot"></span>debug &amp; fix</span>
+        <span class="feat"><span class="feat-dot"></span>error diagnosis</span>
+        <span class="feat"><span class="feat-dot"></span>file analysis</span>
+      </div>
+      <button class="launch-btn" onclick="App.launch()">Launch App <span>→</span></button>
+      <div class="hero-mono" id="hero-status">// checking server...</div>
+    </div>
+  </div>
+
+  <!-- ── APP SHELL ── -->
+  <div class="app">
+
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <span class="logo-name">Code<span>Mind</span></span>
+        <span class="logo-tag">v1.0</span>
+      </div>
+      <div class="header-right">
+        <span class="model-badge" id="model-badge">Llama-3</span>
+        <span class="status-pill" id="status-pill">
+          <span class="pulse"></span><span id="status-text">connected</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">tools</div>
+        <div class="nav-item active" data-panel="chat" onclick="App.switchPanel('chat', this)">
+          <span class="nav-icon">&#9646;</span> chat assistant <span class="nav-badge hi">AI</span>
+        </div>
+        <div class="nav-item" data-panel="debug" onclick="App.switchPanel('debug', this)">
+          <span class="nav-icon">&#9654;</span> debug code
+        </div>
+        <div class="nav-item" data-panel="error" onclick="App.switchPanel('error', this)">
+          <span class="nav-icon">!</span> error analyzer
+        </div>
+        <div class="nav-item" data-panel="file" onclick="App.switchPanel('file', this)">
+          <span class="nav-icon">&#8679;</span> file analysis
+        </div>
+        <div class="nav-item" data-panel="rag" onclick="App.switchPanel('rag', this)">
+          <span class="nav-icon">&#9670;</span> RAG search <span class="nav-badge hi">new</span>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">quick actions</div>
+        <div class="nav-item" onclick="App.quickAction('explain')"><span class="nav-icon">?</span> explain code</div>
+        <div class="nav-item" onclick="App.quickAction('refactor')"><span class="nav-icon">~</span> refactor</div>
+        <div class="nav-item" onclick="App.quickAction('tests')"><span class="nav-icon">✓</span> generate tests</div>
+        <div class="nav-item" onclick="App.quickAction('complexity')"><span class="nav-icon">O</span> complexity</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sys-info">
+          backend: <span>Node.js + Express</span><br>
+          model: <span>Llama3</span><br>
+          session: <span id="session-id">--</span><br>
+          messages: <span id="msg-count">0</span><br>
+          rag chunks: <span id="rag-count">0</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- ── CHAT PANEL ── -->
+      <div class="panel active" id="panel-chat">
+        <div class="chip-bar">
+          <span class="chip-label">try:</span>
+          <span class="chip" onclick="Chat.quickPrompt('Explain how async/await works in JavaScript')">async/await</span>
+          <span class="chip" onclick="Chat.quickPrompt('What are common React hook mistakes?')">react hooks</span>
+          <span class="chip" onclick="Chat.quickPrompt('How do I structure a Node.js project properly?')">project structure</span>
+          <span class="chip" onclick="Chat.quickPrompt('What design pattern should I use for this use case?')">design patterns</span>
+          <span class="chip" onclick="Chat.quickPrompt('How do I write clean, readable code?')">clean code</span>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg ai">
+            <div class="msg-avatar">CM</div>
+            <div class="msg-content">
+              <div class="msg-meta">CodeMind · now</div>
+              <div class="msg-bubble">
+                Hey! I'm <strong>CodeMind</strong>, your AI codebase assistant.<br><br>
+                I can help you <strong>debug broken code</strong>, <strong>explain complex logic</strong>, <strong>suggest refactors</strong>, <strong>analyze architecture</strong>, or just talk through any dev problem.<br><br>
+                Paste some code or ask me anything to get started.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-bar">
+          <textarea class="chat-input" id="chat-input" placeholder="Ask anything about your code… (Enter to send, Shift+Enter for new line)" onkeydown="Chat.onKey(event)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="Chat.send()">↑</button>
+        </div>
+      </div>
+
+      <!-- ── DEBUG PANEL ── -->
+      <div class="panel" id="panel-debug">
+        <div class="split-pane">
+          <div class="split-left">
+            <div class="pane-bar">
+              <span>◈ code input</span>
+              <select class="lang-select" id="lang-select">
+                <option>javascript</option><option>typescript</option>
+                <option>python</option><option>java</option>
+                <option>c++</option><option>go</option><option>rust</option>
+                <option>ruby</option><option>php</option><option>sql</option><option>other</option>
+              </select>
+            </div>
+            <textarea class="code-area" id="debug-code"
+              placeholder="// paste your code here...&#10;&#10;function calculateTotal(items) {&#10;  let total = 0&#10;  for (let i = 0; i &lt;= items.length; i++) {&#10;    total += items[i].price&#10;  }&#10;  return total&#10;}"></textarea>
+            <div class="action-bar">
+              <button class="btn primary" onclick="Debug.run('debug')">▶ debug &amp; fix</button>
+              <button class="btn" onclick="Debug.run('explain')">explain</button>
+              <button class="btn" onclick="Debug.run('refactor')">refactor</button>
+              <button class="btn" onclick="Debug.run('complexity')">complexity</button>
+              <button class="btn" onclick="Debug.run('tests')">gen tests</button>
+            </div>
+          </div>
+          <div class="split-right">
+            <div class="pane-bar"><span>◈ analysis output</span></div>
+            <div class="output-area" id="debug-output">
+              <div class="empty-state">paste code on the left<br><span>then choose an action</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ERROR PANEL ── -->
+      <div class="panel" id="panel-error">
+        <div class="error-layout">
+          <div class="error-input-section">
+            <div class="pane-bar" style="color:var(--r)">⚠ paste error or stack trace</div>
+            <textarea class="error-area" id="error-input"
+              placeholder="TypeError: Cannot read properties of undefined (reading 'map')&#10;    at ProductList (ProductList.jsx:23:45)&#10;    at renderWithHooks (react-dom.development.js:14985:18)&#10;    ..."></textarea>
+            <div class="action-bar">
+              <button class="btn danger" id="err-btn" onclick="ErrorAnalyzer.run()">⬆ Analyze Error</button>
+              <button class="btn" onclick="ErrorAnalyzer.clear()">clear</button>
+            </div>
+          </div>
+          <div class="output-area" id="error-output">
+            <div class="empty-state">paste a stack trace above<br><span>get root cause + fix instantly</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FILE PANEL ── -->
+      <div class="panel" id="panel-file">
+        <div class="file-layout">
+          <div class="file-sidebar">
+            <div class="drop-zone" id="drop-zone">
+              <input type="file" id="file-input" multiple
+                accept=".js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.go,.rs,.rb,.php,.html,.css,.json,.md,.txt,.sql,.vue,.svelte"
+                onchange="FileAnalyzer.handleFiles(this.files)" />
+              <div class="drop-icon">⬆</div>
+              <div class="drop-title">drop files here</div>
+              <div class="drop-sub">.js .ts .py .java .go .rs .html .css .sql .json .md</div>
+            </div>
+            <div class="file-list" id="file-list"></div>
+          </div>
+          <div class="file-main" id="file-main">
+            <div class="empty-state" id="file-empty" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+              <div style="font-size:36px;opacity:0.15">⬆</div>
+              <div style="font-size:13px">upload a file to analyze</div>
+              <div style="font-size:11px;opacity:0.5">supports 15+ languages</div>
+            </div>
+            <div id="file-active" style="display:none;flex-direction:column;height:100%">
+              <div class="action-bar" style="border-bottom:1px solid var(--b1);background:var(--bg1)">
+                <button class="btn primary" onclick="FileAnalyzer.analyze('full')">▶ full analysis</button>
+                <button class="btn" onclick="FileAnalyzer.analyze('bugs')">find bugs</button>
+                <button class="btn" onclick="FileAnalyzer.analyze('explain')">explain</button>
+                <button class="btn" onclick="FileAnalyzer.analyze('security')">security audit</button>
+              </div>
+              <div class="output-area" id="file-output" style="flex:1">
+                <div class="empty-state">choose an analysis type above</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ── RAG PANEL ── -->
+      <div class="panel" id="panel-rag">
+        <div class="rag-layout">
+
+          <!-- Left: index manager -->
+          <div class="rag-sidebar">
+            <div class="pane-bar">&#9670; knowledge base</div>
+
+            <div class="rag-drop-zone" id="rag-drop-zone">
+              <input type="file" id="rag-file-input" multiple
+                accept=".js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.go,.rs,.rb,.php,.html,.css,.json,.md,.txt,.sql,.vue,.svelte"
+                onchange="RAG.handleFiles(this.files)" />
+              <div class="drop-icon" style="font-size:18px">&#9670;</div>
+              <div class="drop-title">index code files</div>
+              <div class="drop-sub">files are chunked, embedded, and stored locally</div>
+            </div>
+
+            <div class="rag-stats" id="rag-stats">
+              <div class="stat-row"><span>status</span><span id="rag-status" class="stat-val dim">empty</span></div>
+              <div class="stat-row"><span>files indexed</span><span id="rag-files" class="stat-val">0</span></div>
+              <div class="stat-row"><span>total chunks</span><span id="rag-chunks" class="stat-val">0</span></div>
+            </div>
+
+            <div id="rag-file-list" class="rag-file-list"></div>
+
+            <div class="rag-actions">
+              <button class="btn danger" style="font-size:11px" onclick="RAG.clear()">clear index</button>
+            </div>
+          </div>
+
+          <!-- Right: query + answer -->
+          <div class="rag-main">
+            <div class="pane-bar">&#9670; ask your codebase</div>
+
+            <div class="rag-query-bar">
+              <input class="rag-input" id="rag-input" type="text"
+                placeholder="e.g. How does authentication work in this project?"
+                onkeydown="if(event.key==='Enter') RAG.ask()" />
+              <button class="btn primary" onclick="RAG.ask()">&#9670; Ask</button>
+            </div>
+
+            <div class="rag-chips">
+              <span class="chip" onclick="RAG.quickAsk('What does this codebase do overall?')">overview</span>
+              <span class="chip" onclick="RAG.quickAsk('What are the main functions and what do they do?')">key functions</span>
+              <span class="chip" onclick="RAG.quickAsk('Are there any obvious bugs or security issues?')">find issues</span>
+              <span class="chip" onclick="RAG.quickAsk('How is error handling implemented?')">error handling</span>
+            </div>
+
+            <div class="output-area" id="rag-output" style="flex:1">
+              <div class="empty-state">
+                index some files on the left<br>
+                <span>then ask anything about your codebase</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
